@@ -62,6 +62,13 @@ main { flex: 1; }
 .secondary-button { border: 1px solid #cbdacf; background: white; color: var(--green); }
 .secondary-button:hover { border-color: var(--green); background: #f7fbf8; }
 .text-button { border: 0; background: transparent; color: var(--green); padding: 0 8px; }
+.danger-button { min-height: 44px; border: 1px solid #d9aaa4; border-radius: 8px; padding: 0 18px; background: #fff; color: #a43f35; font-size: .78rem; font-weight: 700; transition: background .18s, border-color .18s; }
+.danger-button:hover { border-color: #b75045; background: #fff5f3; }
+.danger-button:disabled { opacity: .55; cursor: not-allowed; }
+.danger-button.compact { min-height: 36px; padding: 0 12px; font-size: .7rem; }
+.danger-button { min-height: 44px; border: 1px solid #d9aaa4; border-radius: 8px; padding: 0 18px; background: #fff; color: #a43f35; font-size: .78rem; font-weight: 700; transition: background .18s, border-color .18s; }
+.danger-button:hover { border-color: #b75045; background: #fff5f3; }
+.danger-button:disabled { opacity: .55; cursor: not-allowed; }
 .text-button:disabled { color: #aeb9b2; cursor: not-allowed; }
 .full { width: 100%; }
 .centered { margin: 18px auto 0; display: flex; }
@@ -73,6 +80,18 @@ main { flex: 1; }
 .dashboard-welcome { display: flex; justify-content: space-between; gap: 30px; align-items: flex-end; margin-bottom: 38px; }
 .dashboard-welcome h1 { margin-bottom: 10px; }
 .dashboard-welcome p { margin: 0; }
+.garden-tree-section { margin-bottom: 28px; }
+.garden-tree-section .section-heading { margin-bottom: 18px; }
+.garden-tree-section .section-heading h2 { font-size: 1.6rem; }
+.tree-count { color: var(--muted); font-size: .8rem; }
+.garden-tree-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.garden-tree-card { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 16px; border: 1px solid #e1eae3; border-radius: 12px; background: white; color: var(--ink); text-align: left; cursor: pointer; transition: border-color .2s, box-shadow .2s, background .2s; }
+.garden-tree-card:hover, .garden-tree-card.selected { border-color: var(--green-light); box-shadow: 0 5px 18px rgba(42, 79, 53, .08); }
+.garden-tree-card.selected { background: #f5faf5; }
+.garden-tree-icon { width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: #eaf3e7; color: var(--green); }
+.garden-tree-copy { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.garden-tree-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.garden-tree-copy small { display: flex; align-items: center; gap: 4px; overflow: hidden; color: var(--muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
 .garden-hero { display: grid; grid-template-columns: 1.16fr .84fr; min-height: 455px; background: white; border: 1px solid #e1eae3; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); }
 .garden-art { position: relative; overflow: hidden; min-height: 440px; background: linear-gradient(#dceee8, #edf3d9 54%, #b7cc91 55%); }
 .garden-art::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, rgba(255,255,255,.8) 0 2px, transparent 3px), radial-gradient(circle at 68% 20%, rgba(255,255,255,.55) 0 1px, transparent 2px); background-size: 90px 80px, 120px 100px; }
@@ -139,6 +158,8 @@ main { flex: 1; }
 .profile-section .section-heading { margin-bottom: 18px; }
 .account-editor-card, .pet-editor-card { padding: 26px; background: white; border: 1px solid #e0e9e2; border-radius: 14px; box-shadow: var(--shadow); }
 .profile-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 20px; }
+.pet-memorial-button { margin-top: 18px; }
+.existing-pet-notice { grid-column: 1 / -1; padding: 14px 16px; border-radius: 9px; background: #edf5ec; color: var(--green-dark); font-size: .82rem; }
 .pet-editor-list { display: grid; gap: 18px; }
 .pet-editor-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
 .pet-editor-heading .pet-profile-photo { flex: 0 0 auto; }
@@ -147,6 +168,7 @@ main { flex: 1; }
 .profile-photo-upload { grid-column: 1 / -1; }
 .profile-saved { margin: 0 0 16px; color: var(--green); font-size: .75rem; }
 .profile-error { margin-bottom: 22px; }
+.pet-delete-button { margin-left: auto; flex-shrink: 0; }
 
 /* Calculator */
 .centered-heading { text-align: center; max-width: 720px; margin: 0 auto 48px; }
@@ -164,12 +186,35 @@ main { flex: 1; }
 .form-card-heading small { color: var(--green-light); letter-spacing: .15em; font-size: .63rem; font-weight: 700; }
 .form-card-heading h2 { font-size: 1.75rem; margin: 5px 0 0; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; min-height: 130px; }
+.field-hint { grid-column: 1 / -1; margin: 0; font-size: .75rem; }
 .wide-field { grid-column: 1 / -1; }
 .pet-photo-upload { grid-column: 1 / -1; min-height: 62px; }
 label { display: flex; flex-direction: column; gap: 9px; color: var(--ink); font-size: .74rem; font-weight: 700; }
 input, select, textarea { width: 100%; border: 1px solid #d5e1d8; border-radius: 8px; outline: none; color: var(--ink); background: #fcfdfb; padding: 13px 14px; font-size: .8rem; transition: border .18s, box-shadow .18s; }
 input:focus, select:focus, textarea:focus { border-color: var(--green-light); box-shadow: 0 0 0 3px rgba(82,183,136,.12); }
 input::placeholder, textarea::placeholder { color: #a7b1ab; font-weight: 400; }
+.date-picker { position: relative; width: 100%; z-index: 5; }
+.date-picker-control { position: relative; }
+.date-picker-control input { padding-right: 46px; cursor: pointer; }
+.date-picker-trigger { position: absolute; top: 50%; right: 8px; display: grid; width: 34px; height: 34px; place-items: center; transform: translateY(-50%); border: 0; border-radius: 7px; background: transparent; color: var(--green); }
+.date-picker-trigger:hover { background: var(--mint); }
+.date-picker-popover { position: absolute; top: calc(100% + 9px); left: 0; z-index: 60; width: min(320px, calc(100vw - 48px)); padding: 16px; border: 1px solid #dce7df; border-radius: 16px; background: #fff; box-shadow: 0 18px 45px rgba(31, 81, 61, .2); animation: date-picker-appear .16s ease-out; }
+.date-picker-heading { display: grid; grid-template-columns: 1fr 92px; gap: 8px; }
+.date-picker-heading select { min-width: 0; padding: 9px 10px; border-color: transparent; background: #f3f7f3; color: var(--green-dark); font-size: .78rem; font-weight: 700; text-transform: capitalize; }
+.date-picker-navigation { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 8px; color: var(--green-dark); font-family: "Prata", serif; font-size: 1.05rem; text-transform: capitalize; }
+.date-picker-navigation button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--green); }
+.date-picker-navigation button:hover { background: var(--mint); }
+.date-picker-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.date-picker-weekday { display: grid; height: 30px; place-items: center; color: #84948a; font-size: .65rem; font-weight: 700; }
+.date-picker-empty, .date-picker-day { min-width: 0; height: 36px; }
+.date-picker-day { border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-size: .76rem; transition: background .15s, color .15s, transform .15s; }
+.date-picker-day:hover { transform: translateY(-1px); background: var(--mint); }
+.date-picker-day.today { box-shadow: inset 0 0 0 1px #a5c9ae; color: var(--green-dark); font-weight: 700; }
+.date-picker-day.selected, .date-picker-day.selected:hover { background: var(--green); color: #fff; box-shadow: 0 4px 10px rgba(45, 106, 79, .22); }
+.date-picker-footer { display: flex; justify-content: space-between; margin-top: 11px; padding-top: 10px; border-top: 1px solid #edf1ed; }
+.date-picker-footer button { border: 0; background: transparent; color: var(--green); font-size: .7rem; font-weight: 700; }
+.date-picker-footer button:hover { color: var(--green-dark); text-decoration: underline; }
+@keyframes date-picker-appear { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .choice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; min-height: 150px; }
 .choice-grid button { border: 1px solid #dce6df; background: #fcfdfb; border-radius: 10px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--ink); }
 .choice-grid button > span { width: 42px; height: 42px; display: grid; place-items: center; color: var(--green); border-radius: 50%; background: var(--mint); }
@@ -211,6 +256,7 @@ input::placeholder, textarea::placeholder { color: #a7b1ab; font-weight: 400; }
 .zone-card > div > span:last-child { display: flex; flex-direction: column; min-width: 0; gap: 5px; }
 .zone-card b { font-family: "Prata", serif; font-size: .84rem; font-weight: 400; }
 .zone-card small { display: flex; align-items: center; color: var(--muted); font-size: .6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone-card small + small { color: var(--green); }
 .zone-icon { width: 39px; height: 39px; flex: 0 0 auto; display: grid; place-items: center; color: var(--green); background: var(--mint); border-radius: 8px; }
 .zone-card.selected { border-color: var(--green-light); background: #f6fbf7; box-shadow: 0 5px 14px rgba(45,106,79,.08); }
 .availability { font-size: .58rem; font-weight: 700; color: var(--green); background: var(--mint); padding: 6px 8px; border-radius: 12px; white-space: nowrap; }
@@ -232,6 +278,7 @@ input::placeholder, textarea::placeholder { color: #a7b1ab; font-weight: 400; }
 .detail-content { padding: 20px; }
 .detail-content h2 { font-size: 1.4rem; margin: 14px 0 6px; }
 .detail-content p { display: flex; align-items: center; gap: 5px; font-size: .68rem; margin-bottom: 14px; }
+.detail-content .zone-demo-notice { display: block; padding: 10px 12px; border: 1px solid #eadbb4; border-radius: 8px; background: #fcf8e9; color: #796536; font-size: .72rem; }
 .tree-tags { display: flex; gap: 6px; margin-bottom: 18px; }
 .tree-tags span { background: #f3f5eb; color: #75805c; border-radius: 12px; padding: 5px 8px; font-size: .58rem; }
 
@@ -300,6 +347,9 @@ footer p, footer > span { margin: 0; font-size: .65rem; color: #89958e; }
   .dashboard-welcome { align-items: flex-start; flex-direction: column; }
   .dashboard-welcome .primary-button { width: 100%; }
   .garden-summary { padding: 30px 24px; }
+  .pet-editor-card > .primary-button { width: 100%; margin: 8px 0 0; }
+  .pet-editor-heading { flex-wrap: wrap; }
+  .pet-delete-button { width: 100%; margin: 4px 0 0; }
   .side-cards { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
   .timeline::before { left: 15px; }

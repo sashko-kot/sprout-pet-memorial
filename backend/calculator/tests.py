@@ -100,6 +100,22 @@ class PetAndTreeSpeciesApiTests(APITestCase):
 		pet.refresh_from_db()
 		self.assertEqual(pet.name, 'Other pet')
 
+	def test_user_can_delete_their_pet(self):
+		pet = Pet.objects.create(user=self.user, name='Milo', species='Cat', weight_kg=4.5)
+
+		response = self.client.delete(reverse('pet_detail', args=[pet.pk]))
+
+		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+		self.assertFalse(Pet.objects.filter(pk=pet.pk).exists())
+
+	def test_user_cannot_delete_another_users_pet(self):
+		pet = Pet.objects.create(user=self.other_user, name='Other pet', species='Cat', weight_kg=4)
+
+		response = self.client.delete(reverse('pet_detail', args=[pet.pk]))
+
+		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+		self.assertTrue(Pet.objects.filter(pk=pet.pk).exists())
+
 	def test_user_can_clear_optional_pet_profile_fields(self):
 		pet = Pet.objects.create(
 			user=self.user,
@@ -139,7 +155,37 @@ class PetAndTreeSpeciesApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		tree_data = next(item for item in response.data if item['id'] == tree.id)
-		self.assertEqual(tree_data['recommended_climate'], 'Temperate')
+		self.assertEqual(tree_data['recommended_climate'], 'Умеренный')
+
+	def test_tree_species_recommended_climates_are_localized_and_deduplicated(self):
+		tree = TreeSpecies.objects.create(
+			title='Pine',
+			growth_rate='Medium',
+			care_level='Low',
+			lifespan='100 years',
+			recommended_climate='Умеренный, Континентальный, Северный, Temperate, Continental, Northern',
+			recommended_soil='Loam',
+		)
+
+		response = self.client.get(reverse('tree_species_list'))
+
+		tree_data = next(item for item in response.data if item['id'] == tree.id)
+		self.assertEqual(tree_data['recommended_climate'], 'Умеренный, Континентальный, Северный')
+
+	def test_tree_species_recommended_soils_are_localized_and_deduplicated(self):
+		tree = TreeSpecies.objects.create(
+			title='Pine',
+			growth_rate='Medium',
+			care_level='Low',
+			lifespan='100 years',
+			recommended_climate='Temperate',
+			recommended_soil='Песчаная, Суглинок, Sandy, Loam',
+		)
+
+		response = self.client.get(reverse('tree_species_list'))
+
+		tree_data = next(item for item in response.data if item['id'] == tree.id)
+		self.assertEqual(tree_data['recommended_soil'], 'Песчаная, Суглинок')
 
 	def test_seeded_tree_catalog_covers_every_form_climate(self):
 		climate_names = ('Южный', 'Умеренный', 'Континентальный', 'Северный')
@@ -190,7 +236,7 @@ class PetAndTreeSpeciesApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 		self.assertEqual(response.data['pet'], pet.id)
-		self.assertEqual(response.data['water_proximity'], '')
+		self.assertEqual(response.data['water_proximity'], 'Нет')
 		self.assertEqual(response.data['care_level_pref'], '')
 		self.assertEqual(response.data['desired_growth_time'], '')
 		self.assertEqual(response.data['weight_kg'], 4.5)
@@ -237,6 +283,33 @@ class PetAndTreeSpeciesApiTests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertIn('soil', response.data)
 
+	def test_calculation_climate_must_match_a_known_region(self):
+		response = self.client.post(reverse('calculate'), {
+			'weight': 8,
+			'scenario': 'Memorial tree',
+			'region': 'Москва',
+			'climate': 'Северный',
+			'soil': 'Суглинок',
+			'lighting': 'Sunny',
+		})
+
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn('climate', response.data)
+
+	def test_calculation_water_proximity_is_yes_or_no(self):
+		response = self.client.post(reverse('calculate'), {
+			'weight': 8,
+			'scenario': 'Memorial tree',
+			'region': 'Москва',
+			'climate': 'Умеренный',
+			'soil': 'Суглинок',
+			'lighting': 'Sunny',
+			'water_proximity': 'Рядом есть пруд',
+		})
+
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn('water_proximity', response.data)
+
 	def test_pdf_passport_contains_saved_calculation_and_pet_data(self):
 		pet = Pet.objects.create(
 			user=self.user,
@@ -253,7 +326,7 @@ class PetAndTreeSpeciesApiTests(APITestCase):
 			'climate': 'Temperate',
 			'soil': 'Loam',
 			'lighting': 'Partial shade',
-			'water_proximity': 'Near a pond',
+			'water_proximity': 'Да',
 			'care_level_pref': 'Low',
 			'desired_growth_time': 'Medium',
 			'comment': 'A quiet place',

@@ -14,7 +14,7 @@ from zones.views import (
     EcoZoneAdminListCreateView,
     EcoZoneListView,
 )
-from tracker.views import AddCareLogView, PlantedTreeListCreateView, UserDashboardView
+from tracker.views import AddCareLogView, PlantedTreeDetailView, PlantedTreeListCreateView, UserDashboardView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -38,6 +38,7 @@ urlpatterns = [
     # Dashboard / Tracker (Экран 5)
     path('api/v1/dashboard/', UserDashboardView.as_view(), name='dashboard'),
     path('api/v1/tracker/plantings/', PlantedTreeListCreateView.as_view(), name='planting_list_create'),
+    path('api/v1/tracker/plantings/<int:pk>/', PlantedTreeDetailView.as_view(), name='planting_detail'),
     path('api/v1/tracker/logs/add/', AddCareLogView.as_view(), name='add_log'),
     path('api/v1/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

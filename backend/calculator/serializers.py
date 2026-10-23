@@ -1,8 +1,57 @@
 from rest_framework import serializers
 from .degradation import CLIMATE_FACTORS, SOIL_FACTORS, degradation_breakdown
 from .models import CapsuleCalculation, Pet, TreeSpecies
+from zones.models import EcoZone
+
+
+def display_climates(value):
+    climate_names = {
+        'temperate': 'Умеренный',
+        'continental': 'Континентальный',
+        'northern': 'Северный',
+        'north': 'Северный',
+        'southern': 'Южный',
+        'south': 'Южный',
+    }
+    climates = []
+    for climate in value.split(','):
+        normalized = climate.strip()
+        if not normalized:
+            continue
+        displayed = climate_names.get(normalized.casefold(), normalized)
+        if displayed.casefold() not in {item.casefold() for item in climates}:
+            climates.append(displayed)
+    return ', '.join(climates)
+
+
+def display_soils(value):
+    soil_names = {
+        'sandy': 'Песчаная',
+        'loam': 'Суглинок',
+        'clay': 'Глинистая',
+        'black soil': 'Чернозём',
+    }
+    soils = []
+    for soil in value.split(','):
+        normalized = soil.strip()
+        if not normalized:
+            continue
+        displayed = soil_names.get(normalized.casefold(), normalized)
+        if displayed.casefold() not in {item.casefold() for item in soils}:
+            soils.append(displayed)
+    return ', '.join(soils)
+
 
 class TreeSpeciesSerializer(serializers.ModelSerializer):
+    recommended_climate = serializers.SerializerMethodField()
+    recommended_soil = serializers.SerializerMethodField()
+
+    def get_recommended_climate(self, tree):
+        return display_climates(tree.recommended_climate)
+
+    def get_recommended_soil(self, tree):
+        return display_soils(tree.recommended_soil)
+
     class Meta:
         model = TreeSpecies
         fields = [
@@ -63,7 +112,11 @@ class CalculationRequestSerializer(serializers.Serializer):
     climate = serializers.CharField(max_length=100)
     soil = serializers.CharField(max_length=100)
     lighting = serializers.CharField(max_length=100)
-    water_proximity = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    water_proximity = serializers.ChoiceField(
+        choices=(('Да', 'Да'), ('Нет', 'Нет')),
+        required=False,
+        default='Нет',
+    )
     care_level_pref = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
     desired_growth_time = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
     comment = serializers.CharField(required=False, allow_blank=True, default='')
@@ -78,6 +131,24 @@ class CalculationRequestSerializer(serializers.Serializer):
         if value.strip().casefold() not in SOIL_FACTORS:
             raise serializers.ValidationError('Выберите поддерживаемый тип почвы.')
         return value
+
+    def validate(self, attrs):
+        region_climates = set(
+            EcoZone.objects.filter(is_active=True, region=attrs['region'])
+            .exclude(climate='')
+            .values_list('climate', flat=True)
+        )
+        if len(region_climates) == 1:
+            region_climate = next(iter(region_climates))
+            if attrs['climate'].strip().casefold() != region_climate.casefold():
+                raise serializers.ValidationError({
+                    'climate': 'Климат определяется выбранным регионом.',
+                })
+        elif len(region_climates) > 1:
+            raise serializers.ValidationError({
+                'region': 'Для выбранного региона не настроен единственный климат.',
+            })
+        return attrs
 
     def validate_pet_id(self, value):
         request = self.context['request']

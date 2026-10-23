@@ -6,6 +6,10 @@ class EcoZone(models.Model):
     address = models.CharField(max_length=255)  # г. СПб, 12 км
     latitude = models.FloatField()
     longitude = models.FloatField()
+    region = models.CharField(max_length=100, blank=True)
+    climate = models.CharField(max_length=50, blank=True)
+    near_water = models.BooleanField(default=False)
+    is_demo = models.BooleanField(default=False)
     has_care_service = models.BooleanField(default=True)  # Доступен уход за саженцами
     rules = models.TextField()
     is_active = models.BooleanField(default=True)

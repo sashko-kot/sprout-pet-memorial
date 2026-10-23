@@ -99,6 +99,17 @@ class PlantingApiTests(APITestCase):
 		self.assertEqual(len(list_response.data), 1)
 		self.assertNotEqual(list_response.data[0]['id'], other_tree.id)
 
+	def test_user_can_create_planting_on_their_own_plot_without_an_eco_zone(self):
+		payload = self.planting_payload()
+		payload['eco_zone'] = None
+		payload['location_details'] = 'Собственный участок'
+
+		response = self.client.post(reverse('planting_list_create'), payload, format='json')
+
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+		self.assertIsNone(response.data['eco_zone'])
+		self.assertEqual(response.data['location_details'], 'Собственный участок')
+
 	def test_user_cannot_create_planting_for_another_users_records(self):
 		response = self.client.post(
 			reverse('planting_list_create'),
@@ -107,6 +118,63 @@ class PlantingApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertFalse(PlantedTree.objects.exists())
+
+	def test_user_can_delete_planting_and_its_care_logs(self):
+		planted_tree = PlantedTree.objects.create(
+			calculation=self.calculation,
+			pet=self.pet,
+			tree_species=self.tree_species,
+			eco_zone=self.zone,
+			planting_date='2026-05-10',
+			location_details='Memorial path, plot A-12',
+		)
+		TreeCareLog.objects.create(
+			planted_tree=planted_tree,
+			event_date='2026-10-23',
+			title='Inspection',
+		)
+
+		response = self.client.delete(reverse('planting_detail', args=[planted_tree.pk]))
+
+		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+		self.assertFalse(PlantedTree.objects.filter(pk=planted_tree.pk).exists())
+		self.assertFalse(TreeCareLog.objects.exists())
+
+	def test_user_cannot_delete_another_users_planting(self):
+		planted_tree = PlantedTree.objects.create(
+			calculation=self.other_calculation,
+			pet=self.other_pet,
+			tree_species=self.tree_species,
+			eco_zone=self.zone,
+			planting_date='2026-05-10',
+			location_details='Other plot',
+		)
+
+		response = self.client.delete(reverse('planting_detail', args=[planted_tree.pk]))
+
+		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+		self.assertTrue(PlantedTree.objects.filter(pk=planted_tree.pk).exists())
+
+	def test_deleting_pet_removes_its_planting_and_care_logs(self):
+		planted_tree = PlantedTree.objects.create(
+			calculation=self.calculation,
+			pet=self.pet,
+			tree_species=self.tree_species,
+			eco_zone=self.zone,
+			planting_date='2026-05-10',
+			location_details='Memorial path, plot A-12',
+		)
+		TreeCareLog.objects.create(
+			planted_tree=planted_tree,
+			event_date='2026-10-23',
+			title='Inspection',
+		)
+
+		response = self.client.delete(reverse('pet_detail', args=[self.pet.pk]))
+
+		self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+		self.assertFalse(PlantedTree.objects.filter(pk=planted_tree.pk).exists())
+		self.assertFalse(TreeCareLog.objects.exists())
 
 	def test_care_log_can_target_owned_planting(self):
 		planted_tree = PlantedTree.objects.create(

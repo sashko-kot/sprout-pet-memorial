@@ -98,8 +98,16 @@ export default function MapZones({ memorial, onPlantingCreated, onCreate }) {
   }, []);
 
   const filtered = useMemo(
-    () => zones.filter((zone) => `${zone.name} ${zone.address} ${zone.zone_type}`.toLowerCase().includes(query.toLowerCase())),
-    [zones, query],
+    () => zones.filter((zone) => {
+      const calculation = memorial?.calculation;
+      if (calculation?.region && zone.region !== calculation.region) return false;
+      if (calculation?.climate && zone.climate !== calculation.climate) return false;
+      if (calculation?.water_proximity === "Да" && !zone.near_water) return false;
+      return `${zone.name} ${zone.address} ${zone.zone_type} ${zone.region} ${zone.climate}`
+        .toLowerCase()
+        .includes(query.toLowerCase());
+    }),
+    [zones, query, memorial],
   );
 
   useEffect(() => {
@@ -142,7 +150,7 @@ export default function MapZones({ memorial, onPlantingCreated, onCreate }) {
         <div className="zones-heading">
           <span className="eyebrow">ЭКО-ПАРКИ</span>
           <h1>Найдите особое место</h1>
-          <p>Проверенные природные зоны, где о дереве будут заботиться.</p>
+          <p>Выберите парк в заданном регионе. Демонстрационные координаты отмечены отдельно.</p>
         </div>
         <label className="search-field"><Icon name="location" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Район или название парка" /></label>
         <div className="zone-count"><b>{filtered.length} зон</b><span>доступно</span></div>
@@ -150,12 +158,19 @@ export default function MapZones({ memorial, onPlantingCreated, onCreate }) {
         <div className="zone-list">
           {loading && [1, 2, 3].map((item) => <div className="zone-card skeleton" key={item} />)}
           {!loading && filtered.length === 0 && (
-            <div className="empty-state compact"><span><Icon name="leaf" /></span><h3>{error ? "Не удалось загрузить зоны" : "Места не найдены"}</h3><p>{error || (zones.length === 0 ? "Добавьте активные эко-зоны с координатами, чтобы они появились на карте." : "Попробуйте изменить запрос.")}</p></div>
+            <div className="empty-state compact"><span><Icon name="leaf" /></span><h3>{error ? "Не удалось загрузить зоны" : "Места не найдены"}</h3><p>{error || (memorial ? "Нет эко-парков, соответствующих региону, климату и фильтру близости к воде." : zones.length === 0 ? "Добавьте активные эко-зоны с координатами, чтобы они появились на карте." : "Попробуйте изменить запрос.")}</p></div>
           )}
           {!loading && filtered.map((zone) => (
             <button key={zone.id} className={`zone-card ${selected?.id === zone.id ? "selected" : ""}`} onClick={() => setSelected(zone)}>
-              <div><span className="zone-icon"><Icon name="sprout" /></span><span><b>{zone.name}</b><small><Icon name="pin" size={14} /> {zone.address}</small></span></div>
-              <span className="availability">{zone.has_care_service ? "Уход" : "Без ухода"}</span>
+              <div>
+                <span className="zone-icon"><Icon name="sprout" /></span>
+                <span>
+                  <b>{zone.name}</b>
+                  <small><Icon name="pin" size={14} /> {zone.address}</small>
+                  <small>{zone.region} · {zone.climate}{zone.near_water ? " · у воды" : ""}</small>
+                </span>
+              </div>
+              <span className="availability">{zone.is_demo ? "Демо" : zone.has_care_service ? "Уход" : "Без ухода"}</span>
               <Icon name="arrow" size={17} />
             </button>
           ))}
@@ -168,6 +183,9 @@ export default function MapZones({ memorial, onPlantingCreated, onCreate }) {
               <span className="availability">{selected.zone_type}</span>
               <h2>{selected.name}</h2>
               <p><Icon name="pin" size={15} /> {selected.address}</p>
+              <p>Регион: {selected.region || "Не указан"} · климат: {selected.climate || "Не указан"}</p>
+              <p>{selected.near_water ? "Рядом есть водоём." : "Зона не отмечена как расположенная рядом с водоёмом."}</p>
+              {selected.is_demo && <p className="zone-demo-notice">Демонстрационная точка: координаты приблизительные, доступность места для посадки нужно уточнить.</p>}
               <p>{selected.has_care_service ? "В зоне доступна услуга ухода за саженцами." : "Уход за саженцем не входит в услуги зоны."}</p>
               <p>{selected.rules}</p>
               {error && <p className="form-error" role="alert">{error}</p>}

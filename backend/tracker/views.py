@@ -15,6 +15,14 @@ class PlantedTreeListCreateView(generics.ListCreateAPIView):
         ).order_by('id')
 
 
+class PlantedTreeDetailView(generics.DestroyAPIView):
+    serializer_class = PlantedTreeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return PlantedTree.objects.filter(calculation__user=self.request.user)
+
+
 class UserDashboardView(APIView):
     """Эндпоинт личного кабинета (Макет 5)"""
     permission_classes = [permissions.IsAuthenticated]

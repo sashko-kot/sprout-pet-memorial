@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "./App";
 import { apiRequest } from "./api";
+import DatePicker from "./DatePicker";
 
 function calculateAgeAtDeath(birthDate, deathDate) {
   if (!birthDate || !deathDate) return "";
@@ -10,7 +11,7 @@ function calculateAgeAtDeath(birthDate, deathDate) {
   return deathYear - birthYear - (deathMonth < birthMonth || (deathMonth === birthMonth && deathDay < birthDay) ? 1 : 0);
 }
 
-function PetEditor({ pet }) {
+function PetEditor({ pet, onCreateMemorial, onDelete, deleting, deleteDisabled }) {
   const [savedPhoto, setSavedPhoto] = useState(pet.photo);
   const [form, setForm] = useState({
     name: pet.name || "",
@@ -65,14 +66,23 @@ function PetEditor({ pet }) {
             : <Icon name="sprout" size={34} />}
         </div>
         <div><span className="eyebrow">КАРТОЧКА ПИТОМЦА</span><h2>{form.name || "Питомец"}</h2></div>
+        <button
+          className="danger-button pet-delete-button"
+          type="button"
+          disabled={deleting || deleteDisabled || saving}
+          aria-label={`Удалить карточку питомца ${form.name}`}
+          onClick={() => onDelete(pet)}
+        >
+          {deleting ? <span className="loader" /> : "Удалить питомца"}
+        </button>
       </div>
       <div className="profile-form-grid">
         <label>Имя<input name="name" value={form.name} onChange={update} required /></label>
         <label>Вид<input name="species" value={form.species} onChange={update} required /></label>
         <label>Порода<input name="breed" value={form.breed} onChange={update} /></label>
         <label>Вес, кг<input type="number" min="0.1" step="0.1" name="weight_kg" value={form.weight_kg} onChange={update} required /></label>
-        <label>Дата рождения<input type="date" name="birth_date" value={form.birth_date} onChange={update} /></label>
-        <label>Дата ухода<input type="date" name="death_date" value={form.death_date} onChange={update} /></label>
+        <label>Дата рождения<DatePicker name="birth_date" value={form.birth_date} onChange={update} /></label>
+        <label>Дата ухода<DatePicker name="death_date" value={form.death_date} onChange={update} /></label>
         <label>Возраст на дату ухода, лет<input value={calculateAgeAtDeath(form.birth_date, form.death_date)} readOnly placeholder="Укажите обе даты" /></label>
         <label className="upload-field profile-photo-upload">
           <input type="file" accept="image/*" onChange={(event) => setForm({ ...form, photo: event.target.files?.[0] || null })} />
@@ -80,6 +90,9 @@ function PetEditor({ pet }) {
           <span><b>{form.photo ? form.photo.name : "Изменить фотографию"}</b><small>JPG или PNG до 10 МБ</small></span>
         </label>
       </div>
+      <button className="secondary-button pet-memorial-button" type="button" onClick={() => onCreateMemorial(pet)}>
+        Продолжить создание мемориала <Icon name="arrow" />
+      </button>
       {error && <p className="form-error" role="alert">{error}</p>}
       {saved && <p className="profile-saved" role="status">Карточка питомца сохранена.</p>}
       <button className="primary-button" disabled={saving}>{saving ? <span className="loader" /> : "Сохранить карточку"} {!saving && <Icon name="check" />}</button>
@@ -87,11 +100,12 @@ function PetEditor({ pet }) {
   );
 }
 
-export default function Profile({ onProfileUpdated }) {
+export default function Profile({ onProfileUpdated, onCreateMemorial }) {
   const [profile, setProfile] = useState({ username: "", email: "", phone: "" });
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingPetId, setDeletingPetId] = useState(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -137,6 +151,24 @@ export default function Profile({ onProfileUpdated }) {
     }
   };
 
+  const deletePet = async (pet) => {
+    const confirmed = window.confirm(
+      `Удалить питомца «${pet.name}»? Связанные расчёты, посадки и записи дневника также будут удалены. Это действие нельзя отменить.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingPetId(pet.id);
+    setError("");
+    try {
+      await apiRequest(`/calculator/pets/${pet.id}/`, { method: "DELETE" });
+      setPets((currentPets) => currentPets.filter((currentPet) => currentPet.id !== pet.id));
+    } catch (requestError) {
+      setError(requestError.message || "Не удалось удалить карточку питомца.");
+    } finally {
+      setDeletingPetId(null);
+    }
+  };
+
   if (loading) {
     return <div className="page"><div className="dashboard-loading"><span className="loader green" /><p>Загружаем личный кабинет…</p></div></div>;
   }
@@ -166,7 +198,16 @@ export default function Profile({ onProfileUpdated }) {
         <div className="section-heading"><div><span className="eyebrow">ПИТОМЦЫ</span><h2>Карточки питомцев</h2></div></div>
         {pets.length === 0
           ? <div className="empty-state compact"><span><Icon name="leaf" /></span><h3>Пока нет карточек</h3><p>Создайте мемориал — данные питомца появятся здесь и их можно будет редактировать.</p></div>
-          : <div className="pet-editor-list">{pets.map((pet) => <PetEditor key={pet.id} pet={pet} />)}</div>}
+          : <div className="pet-editor-list">{pets.map((pet) => (
+            <PetEditor
+              key={pet.id}
+              pet={pet}
+              onCreateMemorial={onCreateMemorial}
+              onDelete={deletePet}
+              deleting={deletingPetId === pet.id}
+              deleteDisabled={deletingPetId !== null}
+            />
+          ))}</div>}
       </section>
     </div>
   );

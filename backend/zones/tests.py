@@ -44,6 +44,23 @@ class EcoZoneApiTests(APITestCase):
 		self.assertIn(active_zone.id, response_ids)
 		self.assertNotIn(closed_zone.id, response_ids)
 
+	def test_seeded_zones_include_region_climate_water_and_demo_metadata(self):
+		response = self.client.get(reverse('zone_list'))
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		regions = {zone['region']: zone['climate'] for zone in response.data}
+		self.assertEqual(regions['Москва'], 'Умеренный')
+		self.assertEqual(regions['Новосибирская область'], 'Континентальный')
+		self.assertEqual(regions['Республика Карелия'], 'Северный')
+		self.assertEqual(regions['Краснодарский край'], 'Южный')
+		self.assertEqual(
+			{zone['climate'] for zone in response.data},
+			{'Умеренный', 'Континентальный', 'Северный', 'Южный'},
+		)
+		self.assertTrue(all('near_water' in zone and 'is_demo' in zone for zone in response.data))
+		self.assertTrue(any(zone['region'] == 'Московская область' and zone['near_water'] for zone in response.data))
+		self.assertTrue(any(zone['region'] == 'Московская область' and not zone['near_water'] for zone in response.data))
+
 	def test_non_admin_cannot_manage_zones(self):
 		self.client.force_authenticate(self.user)
 

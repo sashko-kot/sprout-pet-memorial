@@ -16,13 +16,24 @@ function toLogView(log) {
   };
 }
 
+function formatTreeCount(count) {
+  const lastTwoDigits = count % 100;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} деревьев`;
+  if (count % 10 === 1) return `${count} дерево`;
+  if (count % 10 >= 2 && count % 10 <= 4) return `${count} дерева`;
+  return `${count} деревьев`;
+}
+
 export default function Dashboard({ onCreate, onMap }) {
   const [plantings, setPlantings] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingPlanting, setDeletingPlanting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedPlantingId, setSelectedPlantingId] = useState(null);
   const [entry, setEntry] = useState({ title: "", text: "", photo: null });
 
   useEffect(() => {
@@ -47,17 +58,24 @@ export default function Dashboard({ onCreate, onMap }) {
           };
         });
         setPlantings(plantingList);
+        setSelectedPlantingId((current) => current || plantingList[0]?.id || null);
         setLogs((plantingList[0]?.care_logs || []).map(toLogView));
       })
       .catch((requestError) => setError(requestError.message || "Не удалось загрузить данные сада."))
       .finally(() => setLoading(false));
   }, []);
 
+  const planting = plantings.find((item) => item.id === selectedPlantingId) || plantings[0];
+
+  useEffect(() => {
+    setLogs((planting?.care_logs || []).map(toLogView));
+  }, [planting]);
+
   const addLog = async (event) => {
     event.preventDefault();
     setSaving(true);
     const data = new FormData();
-    data.append("planted_tree", plantings[0]?.id || "");
+    data.append("planted_tree", planting?.id || "");
     data.append("event_date", new Date().toISOString().slice(0, 10));
     data.append("title", entry.title);
     data.append("description", entry.text);
@@ -68,12 +86,38 @@ export default function Dashboard({ onCreate, onMap }) {
         body: data,
       });
       setLogs([toLogView(saved), ...logs]);
+      setPlantings((current) => current.map((item) => (
+        item.id === planting.id
+          ? { ...item, care_logs: [saved, ...(item.care_logs || [])] }
+          : item
+      )));
       setShowForm(false);
       setEntry({ title: "", text: "", photo: null });
     } catch (requestError) {
       setError(requestError.message || "Не удалось сохранить запись.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deletePlanting = async () => {
+    const confirmed = window.confirm(
+      `Удалить дерево «${planting.tree_name}» в память о питомце «${planting.pet_name}»? Записи дневника этого дерева также будут удалены. Это действие нельзя отменить.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingPlanting(true);
+    setDeleteError("");
+    try {
+      await apiRequest(`/tracker/plantings/${planting.id}/`, { method: "DELETE" });
+      const remainingPlantings = plantings.filter((item) => item.id !== planting.id);
+      setPlantings(remainingPlantings);
+      setSelectedPlantingId(remainingPlantings[0]?.id || null);
+      setLogs((remainingPlantings[0]?.care_logs || []).map(toLogView));
+    } catch (requestError) {
+      setDeleteError(requestError.message || "Не удалось удалить дерево.");
+    } finally {
+      setDeletingPlanting(false);
     }
   };
 
@@ -88,20 +132,45 @@ export default function Dashboard({ onCreate, onMap }) {
           <span className="empty-illustration"><Icon name="sprout" size={54} /></span>
           <span className="eyebrow">ВАШ САД ГОТОВ РАСТИ</span>
           <h1>Здесь появится первая история</h1>
-          <p>{error || "Создайте экологичный мемориал — мы поможем выбрать капсулу, дерево и особое место."}</p>
+          <p>{deleteError || error || "Создайте экологичный мемориал — мы поможем выбрать капсулу, дерево и особое место."}</p>
           <button className="primary-button" onClick={onCreate}>Создать мемориал <Icon name="arrow" /></button>
         </section>
       </div>
     );
   }
 
-  const planting = plantings[0];
   return (
     <div className="page dashboard-page">
       <header className="dashboard-welcome">
         <div><span className="eyebrow">ВАШ ЖИВОЙ САД</span><h1>Ваш сад растёт</h1><p>Сегодня хороший день, чтобы вспомнить важное и позаботиться о будущем.</p></div>
         <button className="primary-button" onClick={onCreate}><Icon name="plus" /> Новый мемориал</button>
       </header>
+      {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
+
+      <section className="garden-tree-section" aria-label="Все деревья">
+        <div className="section-heading">
+          <div><span className="eyebrow">ВАШИ ПОСАДКИ</span><h2>Все деревья</h2></div>
+          <span className="tree-count">{formatTreeCount(plantings.length)}</span>
+        </div>
+        <div className="garden-tree-grid">
+          {plantings.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`garden-tree-card ${planting.id === item.id ? "selected" : ""}`}
+              aria-pressed={planting.id === item.id}
+              onClick={() => setSelectedPlantingId(item.id)}
+            >
+              <span className="garden-tree-icon"><Icon name="sprout" size={30} /></span>
+              <span className="garden-tree-copy">
+                <b>{item.tree_name}</b>
+                <small>В память о {item.pet_name}</small>
+                <small><Icon name="pin" size={13} /> {item.zone_name || item.location_details}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="garden-hero">
         <div className="garden-art">
@@ -112,7 +181,12 @@ export default function Dashboard({ onCreate, onMap }) {
           <span className="garden-caption">Каждый новый лист — продолжение истории</span>
         </div>
         <div className="garden-summary">
-          <div className="summary-top"><span className="status-dot">Дерево растёт</span><button className="more-button">•••</button></div>
+          <div className="summary-top">
+            <span className="status-dot">Дерево растёт</span>
+            <button className="danger-button compact" type="button" disabled={deletingPlanting} onClick={deletePlanting}>
+              {deletingPlanting ? <span className="loader" /> : "Удалить дерево"}
+            </button>
+          </div>
           <span className="eyebrow">В ПАМЯТЬ О {planting.pet_name?.toUpperCase()}</span>
           <h2>{planting.tree_name}</h2>
           <p className="location-line"><Icon name="pin" size={16} /> {planting.zone_name}</p>
@@ -130,7 +204,7 @@ export default function Dashboard({ onCreate, onMap }) {
 
       <section className="dashboard-columns">
         <div className="journal-section">
-          <div className="section-heading"><div><span className="eyebrow">ДНЕВНИК РОСТА</span><h2>История вашего дерева</h2></div><button className="secondary-button" onClick={() => setShowForm(true)}><Icon name="plus" /> Добавить запись</button></div>
+          <div className="section-heading"><div><span className="eyebrow">ДНЕВНИК РОСТА</span><h2>История дерева «{planting.tree_name}»</h2></div><button className="secondary-button" onClick={() => setShowForm(true)}><Icon name="plus" /> Добавить запись</button></div>
           <div className="timeline">
             {logs.length === 0 ? (
               <div className="empty-state compact"><span><Icon name="calendar" /></span><h3>Дневник пока пуст</h3><p>Добавьте первую заметку об уходе.</p></div>

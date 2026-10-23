@@ -53,6 +53,7 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(() => Boolean(localStorage.getItem("ecopet_token")));
   const [memorial, setMemorial] = useState(null);
+  const [pendingPet, setPendingPet] = useState(null);
   const [profile, setProfile] = useState(readStoredProfile);
 
   useEffect(() => {
@@ -131,17 +132,21 @@ export default function App() {
       )}
 
       <main>
-        {screen === "dashboard" && <Dashboard onCreate={() => { setMemorial(null); navigate("calculator"); }} onMap={() => navigate("map")} />}
-        {screen === "profile" && <Profile onProfileUpdated={setProfile} />}
+        {screen === "dashboard" && <Dashboard onCreate={() => { setMemorial(null); setPendingPet(null); navigate("calculator"); }} onMap={() => navigate("map")} />}
+        {screen === "profile" && <Profile
+          onProfileUpdated={setProfile}
+          onCreateMemorial={(pet) => { setMemorial(null); setPendingPet(pet); navigate("calculator"); }}
+        />}
         {screen === "calculator" && <Calculator
-          onCreated={setMemorial}
+          initialPet={pendingPet}
+          onCreated={(createdMemorial) => { setMemorial(createdMemorial); setPendingPet(null); }}
           onMap={() => navigate("map")}
-          onFinished={() => { setMemorial(null); navigate("dashboard"); }}
+          onFinished={() => { setMemorial(null); setPendingPet(null); navigate("dashboard"); }}
         />}
         {screen === "map" && <MapZones
           memorial={memorial}
           onCreate={() => navigate("calculator")}
-          onPlantingCreated={() => { setMemorial(null); navigate("dashboard"); }}
+          onPlantingCreated={() => { setMemorial(null); setPendingPet(null); navigate("dashboard"); }}
         />}
       </main>
 

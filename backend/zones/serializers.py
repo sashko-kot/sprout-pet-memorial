@@ -4,7 +4,20 @@ from .models import EcoZone
 class EcoZoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = EcoZone
-        fields = ['id', 'name', 'zone_type', 'address', 'latitude', 'longitude', 'has_care_service', 'rules']
+        fields = [
+            'id',
+            'name',
+            'zone_type',
+            'address',
+            'latitude',
+            'longitude',
+            'region',
+            'climate',
+            'near_water',
+            'is_demo',
+            'has_care_service',
+            'rules',
+        ]
 
 
 class EcoZoneAdminSerializer(serializers.ModelSerializer):
